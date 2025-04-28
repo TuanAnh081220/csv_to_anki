@@ -1,0 +1,19 @@
+# Temporary audio files
+temp_audio/
+
+# Generated Anki decks
+anki_decks/
+
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE settings
+.vscode/
+.idea/
+
+# macOS system files
+.DS_Store
