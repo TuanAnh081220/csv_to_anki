@@ -26,15 +26,50 @@ def generate_audio(word):
         print(f"Warning: Could not generate audio for word '{word}': {e}")
         return None
 
-def convert_csv_to_anki(csv_path):
+def read_special_words(special_words_file):
+    """Read special words from file and return as a set"""
+    if not special_words_file:
+        return set()
+        
+    special_words = set()
+    try:
+        with open(special_words_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                word = line.strip()
+                if word:  # Skip empty lines
+                    special_words.add(word.lower())
+    except Exception as e:
+        print(f"Warning: Could not read special words file: {e}")
+    return special_words
+
+def convert_csv_to_anki(csv_path, special_words=None):
     # Check if file is empty
     if os.path.getsize(csv_path) == 0:
         print(f"Warning: {csv_path} is empty")
         return None
 
     try:
-        # Read all columns with | separator
-        df = pd.read_csv(csv_path, header=None, sep="|", engine='python', on_bad_lines='skip')
+        # Read the file line by line to handle variable number of fields
+        rows = []
+        max_fields = 0
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            for line_num, line in enumerate(f, 1):
+                # Split by | and strip whitespace
+                fields = [field.strip() for field in line.strip().split('|')]
+                
+                # Skip empty lines
+                if not fields or not any(fields):
+                    continue
+                
+                # Update max fields count
+                max_fields = max(max_fields, len(fields))
+                rows.append(fields)
+        
+        # Create DataFrame with proper number of columns
+        df = pd.DataFrame(rows)
+        
+        # Pad rows with fewer fields with empty strings
+        df = df.fillna('')
         
         # Check if DataFrame is empty
         if df.empty:
@@ -126,6 +161,8 @@ def convert_csv_to_anki(csv_path):
 
     # Add notes
     for idx, row in df.iterrows():
+        print(f"processing row {idx}")
+
         # Get all example columns (everything except Word and Meaning)
         example_cols = [col for col in df.columns if col.startswith('Example_')]
         
@@ -172,54 +209,102 @@ def convert_csv_to_anki(csv_path):
             except Exception as e:
                 print(f"Warning: Could not process audio for word '{word}': {e}")
         
+        # Color the word red if it's in special_words
+        display_word = word
+        if special_words and word.lower() in special_words:
+            display_word = f'<span style="color: red;">{word}</span>'
+        
         note = genanki.Note(
             model=model,
-            fields=[word, str(row['Meaning']), formatted_examples, audio_tag]
+            fields=[display_word, str(row['Meaning']), formatted_examples, audio_tag]
         )
         deck.add_note(note)
 
     return deck
 
+def process_csv_file(csv_file, anki_dir):
+    """Process a single CSV file and create an Anki deck"""
+    try:
+        print(f"\nProcessing {csv_file}...")
+        deck = convert_csv_to_anki(csv_file)
+        if deck is not None:
+            # Get all audio files for this deck
+            temp_dir = Path('temp_audio')
+            audio_files = []
+            if temp_dir.exists():
+                audio_files = [str(f) for f in temp_dir.glob('*.mp3')]
+            
+            # Create package with media files
+            output_path = anki_dir / f"{csv_file.stem}.apkg"
+            package = genanki.Package(deck)
+            if audio_files:
+                package.media_files = audio_files
+            package.write_to_file(output_path)
+            print(f"Created Anki deck: {output_path}")
+            return True
+    except pd.errors.EmptyDataError:
+        print(f"Warning: {csv_file} is empty or has no valid data")
+    except Exception as e:
+        print(f"Error processing {csv_file}: {e}")
+    return False
+
 def main():
-    # Create directories if they don't exist
-    csv_dir = Path('csv_files')
+    import argparse
+    
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description='Convert CSV files to Anki decks')
+    parser.add_argument('path', help='Path to CSV file or directory containing CSV files')
+    parser.add_argument('--special-words', '-s', help='Path to file containing special words to highlight in red')
+    args = parser.parse_args()
+    
+    # Read special words if file provided
+    special_words = read_special_words(args.special_words) if args.special_words else set()
+    if special_words:
+        print(f"Loaded {len(special_words)} special words")
+    
+    # Convert path to Path object
+    input_path = Path(args.path)
+    
+    # Create anki_decks directory
     anki_dir = Path('anki_decks')
-    csv_dir.mkdir(exist_ok=True)
     anki_dir.mkdir(exist_ok=True)
-
-    # Check if csv_files directory is empty
-    csv_files = list(csv_dir.glob('*.csv'))
-    if not csv_files:
-        print("No CSV files found in the csv_files directory")
-        return
-
-    # Process each CSV file
-    processed = False
-    for csv_file in csv_files:
-        try:
-            deck = convert_csv_to_anki(csv_file)
+    
+    # Process based on whether path is file or directory
+    if input_path.is_file():
+        if input_path.suffix.lower() != '.csv':
+            print(f"Error: {input_path} is not a CSV file")
+            return
+        deck = convert_csv_to_anki(input_path, special_words)
+        if deck is not None:
+            output_path = anki_dir / f"{input_path.stem}.apkg"
+            package = genanki.Package(deck)
+            package.write_to_file(output_path)
+            print(f"Created Anki deck: {output_path}")
+        else:
+            print("Failed to process CSV file")
+    
+    elif input_path.is_dir():
+        # Process all CSV files in directory
+        csv_files = list(input_path.glob('*.csv'))
+        if not csv_files:
+            print(f"No CSV files found in {input_path}")
+            return
+        
+        processed_count = 0
+        for csv_file in csv_files:
+            print(f"\nProcessing {csv_file}...")
+            deck = convert_csv_to_anki(csv_file, special_words)
             if deck is not None:
-                # Get all audio files for this deck
-                temp_dir = Path('temp_audio')
-                audio_files = []
-                if temp_dir.exists():
-                    audio_files = [str(f) for f in temp_dir.glob('*.mp3')]
-                
-                # Create package with media files
                 output_path = anki_dir / f"{csv_file.stem}.apkg"
                 package = genanki.Package(deck)
-                if audio_files:
-                    package.media_files = audio_files
                 package.write_to_file(output_path)
                 print(f"Created Anki deck: {output_path}")
-                processed = True
-        except pd.errors.EmptyDataError:
-            print(f"Warning: {csv_file} is empty or has no valid data")
-        except Exception as e:
-            print(f"Error processing {csv_file}: {e}")
+                processed_count += 1
+        
+        print(f"\nProcessed {processed_count} out of {len(csv_files)} CSV files successfully")
     
-    if not processed:
-        print("No valid CSV files were processed successfully")
+    else:
+        print(f"Error: {input_path} does not exist")
 
 
 if __name__ == "__main__":

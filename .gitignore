@@ -1,8 +1,18 @@
-# Temporary audio files
+# Audio files
 temp_audio/
+audio_files/
 
 # Generated Anki decks
 anki_decks/
+
+# CSV data directories
+csv_files/
+csv_resources/
+
+# Utility scripts
+extract_frequent.py
+merge_csv.py
+split_csv.py
 
 # Python virtual environment
 venv/

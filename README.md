@@ -1,26 +1,15 @@
-# CSV to Anki Vocabulary Converter
+# CSV to Anki Converter
 
-A Python script that converts CSV vocabulary files into Anki decks with audio pronunciation and example sentences.
+A Python script to convert CSV vocabulary files into Anki decks with audio pronunciation and special word highlighting.
 
 ## Features
 
-- Converts CSV vocabulary lists to Anki decks
-- Adds US English audio pronunciation for each word
-- Highlights the word in example sentences (bold)
-- Supports multiple examples per word
-- Beautiful card formatting with clear sections
-
-## Project Structure
-
-```
-.
-├── csv_files/          # Place your vocabulary CSV files here
-│   └── example.csv     # Example vocabulary file
-├── anki_decks/         # Generated Anki decks will be here
-├── temp_audio/         # Cached audio files (gitignored)
-├── convert_csv_to_anki.py
-└── requirements.txt
-```
+- Converts CSV files to Anki decks
+- Adds audio pronunciation using Google Text-to-Speech
+- Formats example sentences with bold target words
+- Supports multiple example sentences per word
+- Optional highlighting of special/frequent words in red
+- Processes single files or entire directories
 
 ## Installation
 
