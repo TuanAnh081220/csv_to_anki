@@ -2,9 +2,6 @@
 temp_audio/
 audio_files/
 
-# Generated Anki decks
-anki_decks/
-
 # CSV data directories
 csv_files/
 csv_resources/
