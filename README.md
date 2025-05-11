@@ -27,7 +27,7 @@ A Python script to convert CSV vocabulary files into Anki decks with audio pronu
 
 3. Install dependencies:
    ```bash
-   pip install pandas genanki gTTS
+   pip install -r requirements.txt
    ```
 
 ## Usage
