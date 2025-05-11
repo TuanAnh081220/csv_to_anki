@@ -106,7 +106,7 @@ def create_anki_cards(words: List[Dict]) -> List[Dict]:
         front = f'<div class="question">{word["example"]}</div>\n'
         front += '<div class="options">\n'
         for i, option in enumerate(options, 1):
-            front += f'<div class="option"><input type="radio" name="answer" id="option_{word_idx}_{i}" class="option-radio" data-option="{i}" data-word="{option["word"]}"><label for="option_{word_idx}_{i}">{i}. {option["word"]}</label></div>\n'
+            front += f'<label class="option"><input type="radio" name="answer" id="option_{word_idx}_{i}" class="option-radio" data-option="{i}" data-word="{option["word"]}"><span class="option-text">{i}. {option["word"]}</span></label>\n'
         front += "</div>"
         # Add JavaScript to handle radio button states and answer checking
         front += """
@@ -243,6 +243,8 @@ def export_to_anki(deck_name: str, cards: List[Dict], output_path: str):
                 border-radius: 4px;
                 display: flex;
                 align-items: center;
+                cursor: pointer;
+                transition: background-color 0.2s;
             }
             .option:hover {
                 background-color: #f0f0f0;
@@ -253,9 +255,9 @@ def export_to_anki(deck_name: str, cards: List[Dict], output_path: str):
                 height: 18px;
                 cursor: pointer;
             }
-            .option label {
-                cursor: pointer;
+            .option-text {
                 flex-grow: 1;
+                cursor: pointer;
             }
             .answer-feedback {
                 margin-bottom: 20px;
